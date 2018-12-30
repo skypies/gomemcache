@@ -143,6 +143,10 @@ type Client struct {
 	// be set to a number higher than your peak parallel requests.
 	MaxIdleConns int
 
+	// abw
+	// Allow caller to specify their own dialer, such as appengine/socket.DialTimeout
+	CustomDialer func(network, addr string, timeout time.Duration) (net.Conn, error)
+
 	selector ServerSelector
 
 	lk       sync.Mutex
@@ -259,7 +263,14 @@ func (c *Client) dial(addr net.Addr) (net.Conn, error) {
 		err error
 	}
 
-	nc, err := net.DialTimeout(addr.Network(), addr.String(), c.netTimeout())
+	// nc, err := net.DialTimeout(addr.Network(), addr.String(), c.netTimeout())
+
+	// abw
+	dialer := c.CustomDialer
+	if dialer == nil {
+		dialer = net.DialTimeout
+	}
+	nc, err := dialer(addr.Network(), addr.String(), c.netTimeout())
 	if err == nil {
 		return nc, nil
 	}
